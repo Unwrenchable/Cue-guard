@@ -5,47 +5,50 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   RefreshControl,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import BagCard from '../components/BagCard';
-import { bagStorageService } from '../services/BagStorageService';
-import { RootStackParamList, StoredBag } from '../types';
+import CueCard from '../components/BagCard';
+import { cueStorageService } from '../services/BagStorageService';
+import { RootStackParamList, StoredCue } from '../types';
 
 type HomeNavProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 /**
- * HomeScreen – shows all bags currently in storage and provides
- * navigation to "Store a Bag" and "Claim a Bag" flows.
+ * HomeScreen – shows all cue cases currently tracked and provides
+ * navigation to "Check In", "Pick Up", and "Return" flows.
+ *
+ * Tournament flow:
+ *   Check In Your Cue → pay once → cue is stored securely for the whole tournament.
+ *   Pick Up Your Cue  → tap NFC to grab cue before a match.
+ *   Return Your Cue   → tap NFC to put cue back in storage after a match.
  */
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeNavProp>();
-  const [bags, setBags] = useState<StoredBag[]>([]);
+  const [cues, setCues] = useState<StoredCue[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadBags = useCallback(() => {
-    const allBags = bagStorageService.getAllBags();
-    setBags(allBags);
+  const loadCues = useCallback(() => {
+    setCues(cueStorageService.getAllCues());
   }, []);
 
   useEffect(() => {
-    loadBags();
-    const unsubscribe = navigation.addListener('focus', loadBags);
+    loadCues();
+    const unsubscribe = navigation.addListener('focus', loadCues);
     return unsubscribe;
-  }, [navigation, loadBags]);
+  }, [navigation, loadCues]);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    loadBags();
+    loadCues();
     setRefreshing(false);
-  }, [loadBags]);
+  }, [loadCues]);
 
   const handlePayPress = useCallback(
-    (bag: StoredBag) => {
-      navigation.navigate('Payment', { bag });
+    (cue: StoredCue) => {
+      navigation.navigate('Payment', { cue });
     },
     [navigation],
   );
@@ -53,46 +56,58 @@ const HomeScreen: React.FC = () => {
   const renderEmpty = () => (
     <View style={styles.empty}>
       <Text style={styles.emptyIcon}>🎱</Text>
-      <Text style={styles.emptyText}>No bags stored yet.</Text>
-      <Text style={styles.emptySubText}>Tap "Store a Bag" to get started.</Text>
+      <Text style={styles.emptyText}>No cues checked in yet.</Text>
+      <Text style={styles.emptySubText}>
+        Tap "Check In Your Cue" to store your cue case securely for the tournament.
+      </Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Cue Guard</Text>
-      <Text style={styles.subtitle}>Tap • Pay • Claim</Text>
+      <Text style={styles.subtitle}>Secure Cue Storage · Pool Tournaments</Text>
 
       <FlatList
-        data={bags}
+        data={cues}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <BagCard bag={item} onPayPress={handlePayPress} />
+          <CueCard cue={item} onPayPress={handlePayPress} />
         )}
         ListEmptyComponent={renderEmpty}
-        contentContainerStyle={bags.length === 0 ? styles.listEmpty : styles.list}
+        contentContainerStyle={cues.length === 0 ? styles.listEmpty : styles.list}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       />
 
+      {/* Three-action footer: Check In / Pick Up / Return */}
       <View style={styles.actions}>
         <TouchableOpacity
-          style={[styles.actionButton, styles.storeButton]}
-          onPress={() => navigation.navigate('StoreBag')}
+          style={[styles.actionButton, styles.checkInButton]}
+          onPress={() => navigation.navigate('CheckInCue')}
           accessibilityRole="button"
-          accessibilityLabel="Store a bag"
+          accessibilityLabel="Check in your cue"
         >
-          <Text style={styles.actionButtonText}>📦  Store a Bag</Text>
+          <Text style={styles.actionButtonText}>📦{'\n'}Check In</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionButton, styles.claimButton]}
-          onPress={() => navigation.navigate('ClaimBag')}
+          style={[styles.actionButton, styles.pickUpButton]}
+          onPress={() => navigation.navigate('PickUpCue')}
           accessibilityRole="button"
-          accessibilityLabel="Claim a bag"
+          accessibilityLabel="Pick up your cue for a match"
         >
-          <Text style={styles.actionButtonText}>📲  Claim a Bag</Text>
+          <Text style={styles.actionButtonText}>📲{'\n'}Pick Up</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.actionButton, styles.returnButton]}
+          onPress={() => navigation.navigate('ReturnCue')}
+          accessibilityRole="button"
+          accessibilityLabel="Return your cue to storage"
+        >
+          <Text style={styles.actionButtonText}>🔄{'\n'}Return</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -112,15 +127,15 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#888',
     textAlign: 'center',
-    letterSpacing: 2,
+    letterSpacing: 1.5,
     marginBottom: 12,
   },
   list: {
     paddingHorizontal: 16,
-    paddingBottom: 100,
+    paddingBottom: 110,
   },
   listEmpty: {
     flex: 1,
@@ -131,6 +146,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 80,
+    paddingHorizontal: 32,
   },
   emptyIcon: {
     fontSize: 64,
@@ -140,11 +156,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#333',
+    textAlign: 'center',
   },
   emptySubText: {
     fontSize: 14,
     color: '#888',
-    marginTop: 4,
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   actions: {
     position: 'absolute',
@@ -155,25 +174,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
-    padding: 12,
-    gap: 10,
+    padding: 10,
+    gap: 8,
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
   },
-  storeButton: {
+  checkInButton: {
     backgroundColor: '#1a1a2e',
   },
-  claimButton: {
+  pickUpButton: {
     backgroundColor: '#27ae60',
+  },
+  returnButton: {
+    backgroundColor: '#2980b9',
   },
   actionButtonText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 15,
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });
 

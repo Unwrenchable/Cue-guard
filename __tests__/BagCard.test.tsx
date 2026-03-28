@@ -1,55 +1,72 @@
 /**
- * Tests for BagCard component.
+ * Tests for CueCard component.
  */
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import BagCard from '../src/components/BagCard';
-import { StoredBag } from '../src/types';
+import CueCard from '../src/components/BagCard';
+import { StoredCue } from '../src/types';
 
-const baseBag: StoredBag = {
-  id: 'bag_001',
+const baseCue: StoredCue = {
+  id: 'cue_001',
   tagId: 'aabbccdd',
   ownerPhone: '+15555550100',
-  description: 'Blue duffel',
-  storedAt: '2026-03-28T00:00:00.000Z',
+  ownerName: 'Mike Sigel',
+  tournamentName: 'Spring Classic 2026',
+  tableNumber: '7',
+  description: 'Black Predator hard case – 2 cues',
+  checkedInAt: '2026-03-28T00:00:00.000Z',
+  lastActivityAt: '2026-03-28T00:00:00.000Z',
   claimCode: '123456',
-  status: 'stored',
+  status: 'checked_in',
   amountCents: 500,
+  checkOutCount: 0,
 };
 
-describe('BagCard', () => {
-  it('renders description and status badge', () => {
-    const { getByText } = render(<BagCard bag={baseBag} />);
-    expect(getByText('Blue duffel')).toBeTruthy();
-    expect(getByText('In Storage')).toBeTruthy();
+describe('CueCard', () => {
+  it('renders owner name, tournament, and status badge', () => {
+    const { getByText } = render(<CueCard cue={baseCue} />);
+    expect(getByText('Mike Sigel')).toBeTruthy();
+    expect(getByText('Spring Classic 2026')).toBeTruthy();
+    expect(getByText('In Storage ✓')).toBeTruthy();
   });
 
-  it('renders fee and claim code', () => {
-    const { getByText } = render(<BagCard bag={baseBag} />);
-    expect(getByText(/Fee: \$5\.00/)).toBeTruthy();
+  it('renders description and claim code', () => {
+    const { getByText } = render(<CueCard cue={baseCue} />);
+    expect(getByText('Black Predator hard case – 2 cues')).toBeTruthy();
     expect(getByText(/Claim code: 123456/)).toBeTruthy();
   });
 
-  it('does not show Pay button when status is stored', () => {
-    const { queryByText } = render(<BagCard bag={baseBag} />);
+  it('renders table number when provided', () => {
+    const { getByText } = render(<CueCard cue={baseCue} />);
+    expect(getByText(/Table 7/)).toBeTruthy();
+  });
+
+  it('does not show Pay button when status is checked_in', () => {
+    const { queryByText } = render(<CueCard cue={baseCue} />);
     expect(queryByText(/Pay/)).toBeNull();
   });
 
   it('shows Pay button when status is pending_payment', () => {
-    const pendingBag: StoredBag = { ...baseBag, status: 'pending_payment' };
+    const pendingCue: StoredCue = { ...baseCue, status: 'pending_payment' };
     const onPayPress = jest.fn();
     const { getByText } = render(
-      <BagCard bag={pendingBag} onPayPress={onPayPress} />,
+      <CueCard cue={pendingCue} onPayPress={onPayPress} />,
     );
-    const payButton = getByText(/Pay \$5\.00/);
+    const payButton = getByText(/Pay \$5\.00 Storage Fee/);
     expect(payButton).toBeTruthy();
     fireEvent.press(payButton);
-    expect(onPayPress).toHaveBeenCalledWith(pendingBag);
+    expect(onPayPress).toHaveBeenCalledWith(pendingCue);
   });
 
-  it('renders claimed status badge', () => {
-    const claimedBag: StoredBag = { ...baseBag, status: 'claimed' };
-    const { getByText } = render(<BagCard bag={claimedBag} />);
-    expect(getByText('Claimed')).toBeTruthy();
+  it('renders checked_out status badge', () => {
+    const checkedOutCue: StoredCue = { ...baseCue, status: 'checked_out', checkOutCount: 2 };
+    const { getByText } = render(<CueCard cue={checkedOutCue} />);
+    expect(getByText('Checked Out')).toBeTruthy();
+    expect(getByText(/Pick-ups this tournament: 2/)).toBeTruthy();
+  });
+
+  it('does not render pick-up count when checkOutCount is 0', () => {
+    const { queryByText } = render(<CueCard cue={baseCue} />);
+    expect(queryByText(/Pick-ups/)).toBeNull();
   });
 });

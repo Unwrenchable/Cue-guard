@@ -11,37 +11,41 @@ import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import TapPayButton from '../components/TapPayButton';
-import BagCard from '../components/BagCard';
+import CueCard from '../components/BagCard';
 import { paymentService } from '../services/PaymentService';
-import { bagStorageService } from '../services/BagStorageService';
+import { cueStorageService } from '../services/BagStorageService';
 import { RootStackParamList } from '../types';
 
 type PaymentRouteProp = RouteProp<RootStackParamList, 'Payment'>;
 type PaymentNavProp = NativeStackNavigationProp<RootStackParamList, 'Payment'>;
 
 /**
- * PaymentScreen – shows the bag details and lets the user complete payment
- * via Apple Pay (iOS) or Google Pay (Android) with a single tap.
+ * PaymentScreen – shows the cue case details and lets the player pay the
+ * one-time tournament storage fee via Apple Pay (iOS) or Google Pay (Android).
+ *
+ * Once paid the cue is secured for the entire tournament duration.
+ * Players can pick up and return their cue as many times as needed at no
+ * additional cost.
  */
 const PaymentScreen: React.FC = () => {
   const route = useRoute<PaymentRouteProp>();
   const navigation = useNavigation<PaymentNavProp>();
-  const { bag } = route.params;
+  const { cue } = route.params;
 
   const [loading, setLoading] = useState(false);
-  const [paid, setPaid] = useState(bag.status === 'stored');
+  const [paid, setPaid] = useState(cue.status === 'checked_in');
 
   const handlePay = async () => {
     setLoading(true);
     try {
-      const result = await paymentService.presentNativePaymentSheet(bag);
+      const result = await paymentService.presentNativePaymentSheet(cue);
 
       if (result.success) {
-        bagStorageService.markAsPaid(bag.tagId);
+        cueStorageService.markAsPaid(cue.tagId);
         setPaid(true);
         Alert.alert(
           '✅ Payment Successful',
-          `Your bag is now stored.\nTransaction: ${result.transactionId}\nClaim code: ${bag.claimCode}`,
+          `Your cue is now secured for the full tournament.\n\nClaim code: ${cue.claimCode}\n\nPick up or return your cue any time — no extra charge.`,
           [{ text: 'Back to Home', onPress: () => navigation.navigate('Home') }],
         );
       } else {
@@ -54,24 +58,28 @@ const PaymentScreen: React.FC = () => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.heading}>Complete Payment</Text>
+      <Text style={styles.heading}>Tournament Storage Fee</Text>
       <Text style={styles.subheading}>
-        Pay securely using your phone's built-in tap-to-pay.
+        Pay once — your cue stays secure for the entire tournament.
+        Pick up and return as many times as you need.
       </Text>
 
       <View style={styles.cardWrapper}>
-        <BagCard bag={bag} />
+        <CueCard cue={cue} />
       </View>
 
       {paid ? (
         <View style={styles.paidBanner}>
-          <Text style={styles.paidText}>✅ Paid – Bag is in storage</Text>
-          <Text style={styles.claimInfo}>Claim code: {bag.claimCode}</Text>
+          <Text style={styles.paidText}>✅ Paid – Cue is in secure storage</Text>
+          <Text style={styles.claimInfo}>Claim code: {cue.claimCode}</Text>
+          <Text style={styles.paidNote}>
+            Use the Pick Up / Return buttons on the home screen any time.
+          </Text>
         </View>
       ) : (
         <>
           <Text style={styles.feeText}>
-            Storage fee: ${(bag.amountCents / 100).toFixed(2)}
+            Storage fee: ${(cue.amountCents / 100).toFixed(2)}
           </Text>
 
           {loading ? (
@@ -81,7 +89,7 @@ const PaymentScreen: React.FC = () => {
           )}
 
           <Text style={styles.disclaimer}>
-            Payment is processed securely via Stripe. Your card details are never stored.
+            Payment processed securely via Stripe. Card details are never stored by Cue Guard.
           </Text>
         </>
       )}
@@ -106,11 +114,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
-    marginVertical: 8,
+    marginVertical: 10,
+    lineHeight: 20,
   },
   cardWrapper: {
     width: '100%',
-    marginTop: 16,
+    marginTop: 8,
   },
   feeText: {
     fontSize: 22,
@@ -150,6 +159,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
     marginTop: 8,
+  },
+  paidNote: {
+    fontSize: 13,
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 18,
   },
 });
 

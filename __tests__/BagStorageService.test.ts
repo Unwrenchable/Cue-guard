@@ -1,81 +1,118 @@
-import { bagStorageService } from '../src/services/BagStorageService';
+import { cueStorageService } from '../src/services/BagStorageService';
 
-// Reset the in-memory store between tests by clearing its internal Map.
-// We access the private `bags` map indirectly through the public API.
+// Reset the in-memory store between tests via the public API.
 beforeEach(() => {
-  // Claim and clear all bags so each test starts clean.
-  const all = bagStorageService.getAllBags();
-  all.forEach((b) => {
-    if (b.status === 'stored') {
-      bagStorageService.claimBag(b.tagId);
-    }
+  // Return any checked-out cues so the service is in a clean state.
+  cueStorageService.getAllCues().forEach((c) => {
+    if (c.status === 'checked_out') cueStorageService.returnCue(c.tagId);
   });
 });
 
-describe('BagStorageService', () => {
+describe('CueStorageService', () => {
   const TAG_ID = 'test-tag-001';
   const PHONE = '+15555550100';
-  const DESCRIPTION = 'Blue duffel bag';
+  const NAME = 'Mike Sigel';
+  const TOURNAMENT = 'Spring Classic 2026';
+  const DESCRIPTION = 'Black Predator hard case – 2 cues';
 
-  it('storeBag registers a new bag with pending_payment status', () => {
-    const bag = bagStorageService.storeBag(TAG_ID, PHONE, DESCRIPTION);
+  it('checkInCue registers a new cue with pending_payment status', () => {
+    const cue = cueStorageService.checkInCue(TAG_ID, PHONE, NAME, TOURNAMENT, DESCRIPTION);
 
-    expect(bag.tagId).toBe(TAG_ID);
-    expect(bag.ownerPhone).toBe(PHONE);
-    expect(bag.description).toBe(DESCRIPTION);
-    expect(bag.status).toBe('pending_payment');
-    expect(bag.amountCents).toBe(500);
-    expect(bag.claimCode).toMatch(/^\d{6}$/);
+    expect(cue.tagId).toBe(TAG_ID);
+    expect(cue.ownerPhone).toBe(PHONE);
+    expect(cue.ownerName).toBe(NAME);
+    expect(cue.tournamentName).toBe(TOURNAMENT);
+    expect(cue.description).toBe(DESCRIPTION);
+    expect(cue.status).toBe('pending_payment');
+    expect(cue.amountCents).toBe(500);
+    expect(cue.claimCode).toMatch(/^\d{6}$/);
+    expect(cue.checkOutCount).toBe(0);
+    expect(cue.tableNumber).toBeUndefined();
   });
 
-  it('getBagByTagId returns the stored bag', () => {
-    bagStorageService.storeBag(TAG_ID, PHONE, DESCRIPTION);
-    const found = bagStorageService.getBagByTagId(TAG_ID);
+  it('checkInCue stores the optional table number', () => {
+    const cue = cueStorageService.checkInCue(TAG_ID, PHONE, NAME, TOURNAMENT, DESCRIPTION, '7');
+    expect(cue.tableNumber).toBe('7');
+  });
+
+  it('getCueByTagId returns the registered cue', () => {
+    cueStorageService.checkInCue(TAG_ID, PHONE, NAME, TOURNAMENT, DESCRIPTION);
+    const found = cueStorageService.getCueByTagId(TAG_ID);
     expect(found).not.toBeNull();
     expect(found!.tagId).toBe(TAG_ID);
   });
 
-  it('getBagByTagId returns null for unknown tag', () => {
-    const found = bagStorageService.getBagByTagId('unknown-tag');
+  it('getCueByTagId returns null for unknown tag', () => {
+    const found = cueStorageService.getCueByTagId('unknown-tag');
     expect(found).toBeNull();
   });
 
-  it('markAsPaid transitions status from pending_payment to stored', () => {
-    bagStorageService.storeBag(TAG_ID, PHONE, DESCRIPTION);
-    const updated = bagStorageService.markAsPaid(TAG_ID);
+  it('markAsPaid transitions status from pending_payment to checked_in', () => {
+    cueStorageService.checkInCue(TAG_ID, PHONE, NAME, TOURNAMENT, DESCRIPTION);
+    const updated = cueStorageService.markAsPaid(TAG_ID);
     expect(updated).not.toBeNull();
-    expect(updated!.status).toBe('stored');
+    expect(updated!.status).toBe('checked_in');
   });
 
   it('markAsPaid returns null for unknown tag', () => {
-    const result = bagStorageService.markAsPaid('no-such-tag');
+    const result = cueStorageService.markAsPaid('no-such-tag');
     expect(result).toBeNull();
   });
 
-  it('claimBag transitions status from stored to claimed', () => {
-    bagStorageService.storeBag(TAG_ID, PHONE, DESCRIPTION);
-    bagStorageService.markAsPaid(TAG_ID);
-    const claimed = bagStorageService.claimBag(TAG_ID);
-    expect(claimed).not.toBeNull();
-    expect(claimed!.status).toBe('claimed');
+  it('checkOutCue transitions status from checked_in to checked_out', () => {
+    cueStorageService.checkInCue(TAG_ID, PHONE, NAME, TOURNAMENT, DESCRIPTION);
+    cueStorageService.markAsPaid(TAG_ID);
+    const checkedOut = cueStorageService.checkOutCue(TAG_ID);
+    expect(checkedOut).not.toBeNull();
+    expect(checkedOut!.status).toBe('checked_out');
+    expect(checkedOut!.checkOutCount).toBe(1);
   });
 
-  it('claimBag returns null when bag is in pending_payment state', () => {
-    bagStorageService.storeBag(TAG_ID, PHONE, DESCRIPTION);
-    // Status is pending_payment, not stored – should not be claimable.
-    const claimed = bagStorageService.claimBag(TAG_ID);
-    expect(claimed).toBeNull();
+  it('checkOutCue returns null when cue is pending_payment', () => {
+    cueStorageService.checkInCue(TAG_ID, PHONE, NAME, TOURNAMENT, DESCRIPTION);
+    const result = cueStorageService.checkOutCue(TAG_ID);
+    expect(result).toBeNull();
   });
 
-  it('getStoredBags returns only bags with stored status', () => {
+  it('returnCue transitions status from checked_out back to checked_in', () => {
+    cueStorageService.checkInCue(TAG_ID, PHONE, NAME, TOURNAMENT, DESCRIPTION);
+    cueStorageService.markAsPaid(TAG_ID);
+    cueStorageService.checkOutCue(TAG_ID);
+    const returned = cueStorageService.returnCue(TAG_ID);
+    expect(returned).not.toBeNull();
+    expect(returned!.status).toBe('checked_in');
+  });
+
+  it('returnCue returns null when cue is already checked_in', () => {
+    cueStorageService.checkInCue(TAG_ID, PHONE, NAME, TOURNAMENT, DESCRIPTION);
+    cueStorageService.markAsPaid(TAG_ID);
+    const result = cueStorageService.returnCue(TAG_ID); // already checked_in
+    expect(result).toBeNull();
+  });
+
+  it('checkOutCount increments with each pick-up during the tournament', () => {
+    cueStorageService.checkInCue(TAG_ID, PHONE, NAME, TOURNAMENT, DESCRIPTION);
+    cueStorageService.markAsPaid(TAG_ID);
+
+    cueStorageService.checkOutCue(TAG_ID);
+    cueStorageService.returnCue(TAG_ID);
+    cueStorageService.checkOutCue(TAG_ID);
+    cueStorageService.returnCue(TAG_ID);
+    cueStorageService.checkOutCue(TAG_ID);
+
+    const cue = cueStorageService.getCueByTagId(TAG_ID);
+    expect(cue!.checkOutCount).toBe(3);
+  });
+
+  it('getCheckedInCues returns only cues with checked_in status', () => {
     const tag2 = 'test-tag-002';
-    bagStorageService.storeBag(TAG_ID, PHONE, DESCRIPTION);
-    bagStorageService.markAsPaid(TAG_ID);
-    bagStorageService.storeBag(tag2, PHONE, 'Red backpack'); // pending_payment
+    cueStorageService.checkInCue(TAG_ID, PHONE, NAME, TOURNAMENT, DESCRIPTION);
+    cueStorageService.markAsPaid(TAG_ID);
+    cueStorageService.checkInCue(tag2, PHONE, 'Earl Strickland', TOURNAMENT, 'Red case'); // pending_payment
 
-    const stored = bagStorageService.getStoredBags();
-    expect(stored.every((b) => b.status === 'stored')).toBe(true);
-    expect(stored.find((b) => b.tagId === TAG_ID)).toBeDefined();
-    expect(stored.find((b) => b.tagId === tag2)).toBeUndefined();
+    const checkedIn = cueStorageService.getCheckedInCues();
+    expect(checkedIn.every((c) => c.status === 'checked_in')).toBe(true);
+    expect(checkedIn.find((c) => c.tagId === TAG_ID)).toBeDefined();
+    expect(checkedIn.find((c) => c.tagId === tag2)).toBeUndefined();
   });
 });

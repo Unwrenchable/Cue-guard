@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
+    "@testing-library/react-native": "^13.3.3",
     "@types/react": "~18.2.79",
     "@types/react-native": "~0.73.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
@@ -37,7 +38,6 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "setupFilesAfterFramework": [],
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|@stripe/stripe-react-native|react-native-nfc-manager)"
     ]

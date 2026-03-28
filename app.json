@@ -16,7 +16,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.cueguard.app",
       "infoPlist": {
-        "NFCReaderUsageDescription": "Cue Guard uses NFC to identify storage tags so you can pay and claim your bags."
+        "NFCReaderUsageDescription": "Cue Guard uses NFC to identify your cue case so you can pay the storage fee and pick up or return your cue at the tournament venue."
       },
       "entitlements": {
         "com.apple.developer.nfc.readersession.formats": ["TAG"]

@@ -4,8 +4,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import HomeScreen from '../screens/HomeScreen';
 import PaymentScreen from '../screens/PaymentScreen';
-import ClaimBagScreen from '../screens/ClaimBagScreen';
-import StoreBagScreen from '../screens/StoreBagScreen';
+import PickUpCueScreen from '../screens/ClaimBagScreen';
+import CheckInCueScreen from '../screens/StoreBagScreen';
+import ReturnCueScreen from '../screens/ReturnCueScreen';
 import { RootStackParamList } from '../types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -28,17 +29,22 @@ const AppNavigator: React.FC = () => (
       <Stack.Screen
         name="Payment"
         component={PaymentScreen}
-        options={{ title: 'Complete Payment' }}
+        options={{ title: 'Storage Fee' }}
       />
       <Stack.Screen
-        name="ClaimBag"
-        component={ClaimBagScreen}
-        options={{ title: 'Claim a Bag' }}
+        name="PickUpCue"
+        component={PickUpCueScreen}
+        options={{ title: 'Pick Up Your Cue' }}
       />
       <Stack.Screen
-        name="StoreBag"
-        component={StoreBagScreen}
-        options={{ title: 'Store a Bag' }}
+        name="CheckInCue"
+        component={CheckInCueScreen}
+        options={{ title: 'Check In Your Cue' }}
+      />
+      <Stack.Screen
+        name="ReturnCue"
+        component={ReturnCueScreen}
+        options={{ title: 'Return Your Cue' }}
       />
     </Stack.Navigator>
   </NavigationContainer>
