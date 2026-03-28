@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Cue Guard",
+    "slug": "cue-guard",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1a1a2e"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.cueguard.app",
+      "infoPlist": {
+        "NFCReaderUsageDescription": "Cue Guard uses NFC to identify your cue case so you can pay the storage fee and pick up or return your cue at the tournament venue."
+      },
+      "entitlements": {
+        "com.apple.developer.nfc.readersession.formats": ["TAG"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a1a2e"
+      },
+      "package": "com.cueguard.app",
+      "permissions": ["android.permission.NFC", "android.permission.VIBRATE"]
+    },
+    "plugins": [
+      [
+        "react-native-nfc-manager",
+        {
+          "selectIdentifiers": [],
+          "systemCodes": []
+        }
+      ]
+    ]
+  }
+}
