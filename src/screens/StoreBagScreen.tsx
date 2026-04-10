@@ -17,6 +17,7 @@ import TapPayButton from '../components/TapPayButton';
 import { nfcService } from '../services/NFCService';
 import { cueStorageService } from '../services/BagStorageService';
 import { paymentService } from '../services/PaymentService';
+import { labelService } from '../services/LabelService';
 import { RootStackParamList, StoredCue } from '../types';
 
 type CheckInNavProp = NativeStackNavigationProp<RootStackParamList, 'CheckInCue'>;
@@ -46,6 +47,7 @@ const CheckInCueScreen: React.FC = () => {
 
   const [step, setStep] = useState<Step>('form');
   const [loading, setLoading] = useState(false);
+  const [printingLabel, setPrintingLabel] = useState(false);
   const [cue, setCue] = useState<StoredCue | null>(null);
 
   const handleProceedToScan = () => {
@@ -66,6 +68,18 @@ const CheckInCueScreen: React.FC = () => {
       return;
     }
     setStep('scan');
+  };
+
+  const handlePrintLabel = async () => {
+    if (!cue) return;
+    setPrintingLabel(true);
+    try {
+      await labelService.printLabel(cue);
+    } catch {
+      Alert.alert('Print Failed', 'Could not open the print dialog. Please try again.');
+    } finally {
+      setPrintingLabel(false);
+    }
   };
 
   const handleScanAndPay = async () => {
@@ -227,6 +241,12 @@ const CheckInCueScreen: React.FC = () => {
             Screenshot this screen. Tap the NFC tag on your case at any time during the
             tournament to pick up or return your cue — no extra charge.
           </Text>
+          <TapPayButton
+            onPress={handlePrintLabel}
+            label={printingLabel ? 'Opening printer…' : '🖨️  Print Case Label'}
+            style={[styles.button, styles.printButton]}
+            loading={printingLabel}
+          />
         </>
       )}
       <TapPayButton
@@ -388,6 +408,9 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 24,
     lineHeight: 20,
+  },
+  printButton: {
+    backgroundColor: '#7f5af0',
   },
 });
 
