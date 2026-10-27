@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # package.json also defines lint and test. They are omitted because they
+      # fail before checking this repo's source: ESLint 8 exits with no config
+      # file, and jest-expo's preset throws during setup (babel-preset-expo is
+      # not resolvable from the project root, then NativeModules is not an
+      # object). There is no build script.
